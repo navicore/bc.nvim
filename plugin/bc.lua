@@ -1,9 +1,10 @@
 -- bc.nvim - Simple calculator plugin using bc for markdown files
 
 local function evaluate_bc()
-  -- Check if we're in a markdown file
-  if vim.bo.filetype ~= 'markdown' then
-    vim.notify("Bc command only works in markdown files", vim.log.levels.WARN)
+  -- Check if we're in a markdown or telekasten file
+  local ft = vim.bo.filetype
+  if ft ~= 'markdown' and ft ~= 'telekasten' then
+    vim.notify("Bc command only works in markdown/telekasten files", vim.log.levels.WARN)
     return
   end
 
@@ -74,5 +75,5 @@ end
 -- Create the :Bc command (only available with visual range)
 vim.api.nvim_create_user_command('Bc', evaluate_bc, {
   range = true,
-  desc = "Evaluate visual selection with bc and append result (markdown only)"
+  desc = "Evaluate visual selection with bc and append result (markdown/telekasten)"
 })
