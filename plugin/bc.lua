@@ -1,5 +1,60 @@
 -- bc.nvim - Simple calculator plugin using bc for markdown files
 
+-- Detect formatting: returns { has_dollar = bool, has_commas = bool }
+local function detect_format(expr)
+  return {
+    has_dollar = expr:match("%$") ~= nil,
+    has_commas = expr:match("%d,") ~= nil,
+  }
+end
+
+-- Strip financial formatting for bc
+local function strip_format(expr)
+  local stripped = expr:gsub("%$", "")
+  stripped = stripped:gsub(",", "")
+  return stripped
+end
+
+-- Add commas to a number string
+local function add_commas(num_str)
+  -- Split into integer and decimal parts
+  local int_part, dec_part = num_str:match("^(-?%d+)(%.?%d*)$")
+  if not int_part then
+    return num_str
+  end
+
+  -- Add commas to integer part (from right to left)
+  local formatted = ""
+  local count = 0
+  for i = #int_part, 1, -1 do
+    local c = int_part:sub(i, i)
+    if c:match("%d") then
+      count = count + 1
+      if count > 3 and count % 3 == 1 then
+        formatted = "," .. formatted
+      end
+    end
+    formatted = c .. formatted
+  end
+
+  return formatted .. dec_part
+end
+
+-- Apply formatting to result based on detected format
+local function apply_format(result, fmt)
+  local formatted = result
+
+  if fmt.has_commas then
+    formatted = add_commas(formatted)
+  end
+
+  if fmt.has_dollar then
+    formatted = "$" .. formatted
+  end
+
+  return formatted
+end
+
 local function evaluate_bc()
   -- Check if we're in a markdown or telekasten file
   local ft = vim.bo.filetype
@@ -36,8 +91,14 @@ local function evaluate_bc()
   -- Clean up the expression
   expression = expression:gsub("^%s+", ""):gsub("%s+$", "")
 
+  -- Detect financial formatting before stripping
+  local fmt = detect_format(expression)
+
+  -- Strip formatting for bc
+  local bc_expr = strip_format(expression)
+
   -- Execute bc
-  local handle = io.popen("echo '" .. expression .. "' | bc 2>&1")
+  local handle = io.popen("echo '" .. bc_expr .. "' | bc 2>&1")
   if not handle then
     vim.notify("Failed to execute bc", vim.log.levels.ERROR)
     return
@@ -55,8 +116,11 @@ local function evaluate_bc()
     return
   end
 
+  -- Apply formatting to result
+  local formatted_result = apply_format(result, fmt)
+
   -- Replace the selection with expression = result
-  local replacement = expression .. " = " .. result
+  local replacement = expression .. " = " .. formatted_result
 
   -- Get the line content and replace the selected portion
   local line = vim.fn.getline(start_line)
