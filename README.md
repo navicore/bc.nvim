@@ -41,6 +41,29 @@ Plug 'navicore/bc.nvim'
 3. Run `:Bc` or `:'<,'>Bc`
 4. The selection will be replaced with the expression and its result (e.g., `2 * (33 - 1) = 64`)
 
+## Financial Formatting
+
+The plugin supports currency and comma formatting:
+
+- `$` symbols are preserved and the result uses 2 decimal places
+- Comma separators in numbers (e.g., `10,000`) are preserved in the result
+
+Examples:
+- `2 * $5` → `2 * $5 = $10.00`
+- `$100 / 3` → `$100 / 3 = $33.33`
+- `2 * 10,000` → `2 * 10,000 = 20,000`
+- `$1,000 + $500` → `$1,000 + $500 = $1,500.00`
+
+## Decimal Handling
+
+The output type is inferred from the input:
+
+- **Integers only** → integer result (e.g., `10 / 3 = 3`)
+- **Any float in input** → float result matching max decimal places (e.g., `10.0 / 3 = 3.3`)
+- **Currency ($)** → always 2 decimal places (e.g., `$10 / 3 = $3.33`)
+
+To get decimal results from integer division, use a float in the input: `10.0 / 3` instead of `10 / 3`.
+
 ## Requirements
 
 - Neovim 0.7+
@@ -50,4 +73,3 @@ Plug 'navicore/bc.nvim'
 
 - Only works in markdown or telekasten files (filetype must be `markdown` or `telekasten`)
 - Uses `bc` syntax, so expressions must be valid `bc` input
-- For decimal results, you may need to use `scale=2;` prefix (e.g., `scale=2; 10/3`)
