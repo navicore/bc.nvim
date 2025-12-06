@@ -1,10 +1,28 @@
 -- bc.nvim - Simple calculator plugin using bc for markdown files
 
--- Detect formatting: returns { has_dollar = bool, has_commas = bool }
+-- Detect formatting: returns { has_dollar = bool, has_commas = bool, scale = number }
 local function detect_format(expr)
+  local has_dollar = expr:match("%$") ~= nil
+  local has_commas = expr:match("%d,") ~= nil
+
+  -- Determine scale for bc
+  local scale = 0
+  if has_dollar then
+    -- Currency always gets 2 decimal places
+    scale = 2
+  else
+    -- Find max decimal places in any number in the expression
+    for decimals in expr:gmatch("%.(%d+)") do
+      if #decimals > scale then
+        scale = #decimals
+      end
+    end
+  end
+
   return {
-    has_dollar = expr:match("%$") ~= nil,
-    has_commas = expr:match("%d,") ~= nil,
+    has_dollar = has_dollar,
+    has_commas = has_commas,
+    scale = scale,
   }
 end
 
@@ -43,6 +61,18 @@ end
 -- Apply formatting to result based on detected format
 local function apply_format(result, fmt)
   local formatted = result
+
+  -- Ensure proper decimal places for currency
+  if fmt.has_dollar and fmt.scale == 2 then
+    -- Make sure we have exactly 2 decimal places
+    if not formatted:match("%.") then
+      formatted = formatted .. ".00"
+    elseif formatted:match("%.$") then
+      formatted = formatted .. "00"
+    elseif formatted:match("%.%d$") then
+      formatted = formatted .. "0"
+    end
+  end
 
   if fmt.has_commas then
     formatted = add_commas(formatted)
@@ -96,6 +126,11 @@ local function evaluate_bc()
 
   -- Strip formatting for bc
   local bc_expr = strip_format(expression)
+
+  -- Prepend scale if needed for decimal results
+  if fmt.scale > 0 then
+    bc_expr = "scale=" .. fmt.scale .. "; " .. bc_expr
+  end
 
   -- Execute bc
   local handle = io.popen("echo '" .. bc_expr .. "' | bc 2>&1")
