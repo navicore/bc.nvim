@@ -1,3 +1,8 @@
+<!-- ghmig:moved -->
+> **This repository has moved to [https://git.navicore.tech/navicore/bc.nvim](https://git.navicore.tech/navicore/bc.nvim).**
+>
+> The GitHub copy is archived and no longer maintained.
+
 # bc.nvim
 
 A simple Neovim plugin to evaluate mathematical expressions using `bc` in markdown and telekasten files.
