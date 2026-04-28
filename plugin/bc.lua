@@ -58,6 +58,13 @@ local function add_commas(num_str)
 	return formatted .. dec_part
 end
 
+-- If the selection already ends with "= <numeric>" or a dangling "=",
+-- return just the math part so we can recompute and replace the result.
+local function split_existing_result(s)
+	local lhs = s:match("^([^=]-)%s*=%s*[%-%d%$,%.]*%s*$")
+	return lhs or s
+end
+
 -- Apply formatting to result based on detected format
 local function apply_format(result, fmt)
 	local formatted = result
@@ -121,11 +128,14 @@ local function evaluate_bc()
 	-- Clean up the expression
 	expression = expression:gsub("^%s+", ""):gsub("%s+$", "")
 
+	-- Drop any existing "= result" or trailing "=" so we can recompute
+	local math_expr = split_existing_result(expression)
+
 	-- Detect financial formatting before stripping
-	local fmt = detect_format(expression)
+	local fmt = detect_format(math_expr)
 
 	-- Strip formatting for bc
-	local bc_expr = strip_format(expression)
+	local bc_expr = strip_format(math_expr)
 
 	-- Prepend scale if needed for decimal results
 	if fmt.scale > 0 then
@@ -155,7 +165,7 @@ local function evaluate_bc()
 	local formatted_result = apply_format(result, fmt)
 
 	-- Replace the selection with expression = result
-	local replacement = expression .. " = " .. formatted_result
+	local replacement = math_expr .. " = " .. formatted_result
 
 	-- Get the line content and replace the selected portion
 	local line = vim.fn.getline(start_line)
